@@ -2,6 +2,12 @@
 A repo to orientate how to build the universe 
 These Repo its destinated to orientate the development of all OUI projects
 
+Advices:
+follow these hierarchy rules:
+if you are working on a a legacy codebase, follow that codebase rules
+(unless if you are porting to the new format)
+
+
 ### C Documentation
 | item                                                                                             | description                        |
 |--------------------------------------------------------------------------------------------------|------------------------------------|
