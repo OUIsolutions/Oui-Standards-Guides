@@ -65,14 +65,14 @@ We welcome contributions to improve and expand these standards. Please:
 
 This repository is under active development. Planned additions include:
 
-- [ ] **Additional Programming Languages**: Python, JavaScript, Go, Rust standards
-- [ ] **Architecture Guidelines**: Microservices, API design, and system architecture patterns
+- [ ] **Additional Programming Languages**: Lua and JavaScript
+- [ ] **Architecture Guidelines**: Microservices, API design,Cli design, Library Design, and system architecture patterns
 - [ ] **Code Review Standards**: Standardized review processes and checklists
 - [ ] **Testing Strategies**: Unit testing, integration testing, and test automation guidelines
 - [ ] **Documentation Standards**: Technical writing and API documentation guidelines
 - [ ] **Security Guidelines**: Secure coding practices and vulnerability prevention
 - [ ] **Performance Guidelines**: Optimization strategies and performance benchmarking
-
+    
 ## Support & Contact
 
 For questions, suggestions, or support regarding these standards:
