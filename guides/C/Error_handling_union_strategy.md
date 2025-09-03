@@ -6,11 +6,12 @@
 3. [Basic Concept](#basic-concept)
 4. [Implementation Guide](#implementation-guide)
 5. [Basic Example](#basic-example)
-6. [Advanced Example with Formatted Messages](#advanced-example-with-formatted-messages)
-7. [Complete Real-World Examples](#complete-real-world-examples)
-8. [Best Practices](#best-practices)
-9. [Common Mistakes to Avoid](#common-mistakes-to-avoid)
-10. [Performance Considerations](#performance-considerations)
+6. [ErrorOrVoid for Functions Without Return Values](#errororvoid-for-functions-without-return-values)
+7. [Advanced Example with Formatted Messages](#advanced-example-with-formatted-messages)
+8. [Complete Real-World Examples](#complete-real-world-examples)
+9. [Best Practices](#best-practices)
+10. [Common Mistakes to Avoid](#common-mistakes-to-avoid)
+11. [Performance Considerations](#performance-considerations)
 
 ## Introduction
 
@@ -89,6 +90,19 @@ typedef struct {
 ```
 
 **Important:** Only access `value` when `is_error` is `false`, and only access `error`/`code` when `is_error` is `true`.
+
+### Special Case: ErrorOrVoid
+
+For functions that don't return a value but can still fail, we use `ErrorOrVoid`:
+
+```c
+typedef struct {
+    bool is_error;      // Flag: true = error, false = success
+    char *error_msg;    // Human-readable error message
+} ErrorOrVoid;
+```
+
+This is perfect for operations like file writing, configuration changes, or cleanup functions that either succeed or fail without returning data.
 
 ## Implementation Guide
 
@@ -224,6 +238,286 @@ int main() {
 Error: Division by zero is not allowed (code: 1001)
 Result: 5.000000
 ```
+
+## ErrorOrVoid for Functions Without Return Values
+
+Many functions don't need to return data but still need to report success or failure. For these cases, we use `ErrorOrVoid`:
+
+### Definition
+
+```c
+typedef struct {
+    bool is_error;      // Flag: true = error, false = success
+    char *error_msg;    // Human-readable error message (can be static or dynamic)
+} ErrorOrVoid;
+```
+
+### Constructor Functions
+
+```c
+// Create a success result (no error)
+ErrorOrVoid newErrorOrVoidSuccess() {
+    ErrorOrVoid result = {0}; // Initialize all fields
+    result.is_error = false;
+    result.error_msg = NULL;
+    return result;
+}
+
+// Create an error result with static message
+ErrorOrVoid newErrorOrVoidError(const char *error_msg) {
+    ErrorOrVoid result = {0}; // Initialize all fields
+    result.is_error = true;
+    result.error_msg = (char*)error_msg; // Cast away const for simplicity
+    return result;
+}
+```
+
+### Complete Example
+
+```c
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <stdbool.h>
+
+// Error codes for file operations
+enum FileOperationErrors {
+    FILE_WRITE_ERROR = 5001,
+    FILE_PERMISSION_ERROR = 5002,
+    INVALID_PARAMETER = 5003
+};
+
+// ErrorOrVoid definition
+typedef struct {
+    bool is_error;
+    char *error_msg;
+} ErrorOrVoid;
+
+// Constructor functions
+ErrorOrVoid newErrorOrVoidSuccess() {
+    ErrorOrVoid result = {0};
+    result.is_error = false;
+    result.error_msg = NULL;
+    return result;
+}
+
+ErrorOrVoid newErrorOrVoidError(const char *error_msg) {
+    ErrorOrVoid result = {0};
+    result.is_error = true;
+    result.error_msg = (char*)error_msg;
+    return result;
+}
+
+// Example function: Write configuration to file
+ErrorOrVoid save_config(const char *filename, const char *config_data) {
+    // Validate parameters
+    if (filename == NULL || config_data == NULL) {
+        return newErrorOrVoidError("Filename and config data cannot be NULL");
+    }
+    
+    if (strlen(filename) == 0) {
+        return newErrorOrVoidError("Filename cannot be empty");
+    }
+    
+    // Try to open file for writing
+    FILE *file = fopen(filename, "w");
+    if (file == NULL) {
+        return newErrorOrVoidError("Cannot open file for writing - check permissions");
+    }
+    
+    // Write configuration data
+    size_t data_len = strlen(config_data);
+    size_t written = fwrite(config_data, 1, data_len, file);
+    
+    if (written != data_len) {
+        fclose(file);
+        return newErrorOrVoidError("Failed to write complete configuration data");
+    }
+    
+    // Ensure data is written to disk
+    if (fflush(file) != 0) {
+        fclose(file);
+        return newErrorOrVoidError("Failed to flush configuration data to disk");
+    }
+    
+    fclose(file);
+    return newErrorOrVoidSuccess(); // Success!
+}
+
+// Example function: Initialize a system component
+ErrorOrVoid initialize_logging_system(const char *log_dir) {
+    if (log_dir == NULL) {
+        return newErrorOrVoidError("Log directory path cannot be NULL");
+    }
+    
+    // Simulate initialization steps
+    printf("Initializing logging system in directory: %s\n", log_dir);
+    
+    // Check if directory exists (simplified check)
+    if (strlen(log_dir) > 100) {
+        return newErrorOrVoidError("Log directory path too long (max 100 characters)");
+    }
+    
+    // Simulate successful initialization
+    printf("Logging system initialized successfully\n");
+    return newErrorOrVoidSuccess();
+}
+
+// Example function: Cleanup resources
+ErrorOrVoid cleanup_resources() {
+    printf("Cleaning up allocated resources...\n");
+    
+    // Simulate cleanup operations
+    // In real code, this might free memory, close files, etc.
+    
+    printf("Resource cleanup completed\n");
+    return newErrorOrVoidSuccess();
+}
+
+int main() {
+    printf("=== ErrorOrVoid Examples ===\n\n");
+    
+    // Example 1: Save configuration (success case)
+    printf("1. Saving configuration to file:\n");
+    ErrorOrVoid result1 = save_config("config.txt", "debug=true\nport=8080\n");
+    if (result1.is_error) {
+        printf("   Error: %s\n", result1.error_msg);
+    } else {
+        printf("   Configuration saved successfully!\n");
+    }
+    
+    printf("\n");
+    
+    // Example 2: Save configuration (error case)
+    printf("2. Saving configuration with invalid parameters:\n");
+    ErrorOrVoid result2 = save_config(NULL, "some config");
+    if (result2.is_error) {
+        printf("   Error: %s\n", result2.error_msg);
+    } else {
+        printf("   Configuration saved successfully!\n");
+    }
+    
+    printf("\n");
+    
+    // Example 3: Initialize logging system (success case)
+    printf("3. Initializing logging system:\n");
+    ErrorOrVoid result3 = initialize_logging_system("/var/log/myapp");
+    if (result3.is_error) {
+        printf("   Error: %s\n", result3.error_msg);
+    } else {
+        printf("   Logging system ready!\n");
+    }
+    
+    printf("\n");
+    
+    // Example 4: Initialize logging system (error case)
+    printf("4. Initializing logging with invalid path:\n");
+    ErrorOrVoid result4 = initialize_logging_system(
+        "/this/is/a/very/long/path/that/exceeds/the/maximum/allowed/length/for/logging/directory/configuration");
+    if (result4.is_error) {
+        printf("   Error: %s\n", result4.error_msg);
+    } else {
+        printf("   Logging system ready!\n");
+    }
+    
+    printf("\n");
+    
+    // Example 5: Cleanup (typically always succeeds)
+    printf("5. Cleaning up resources:\n");
+    ErrorOrVoid result5 = cleanup_resources();
+    if (result5.is_error) {
+        printf("   Error during cleanup: %s\n", result5.error_msg);
+    } else {
+        printf("   Cleanup completed successfully!\n");
+    }
+    
+    return 0;
+}
+```
+
+### Output
+
+```
+=== ErrorOrVoid Examples ===
+
+1. Saving configuration to file:
+   Configuration saved successfully!
+
+2. Saving configuration with invalid parameters:
+   Error: Filename and config data cannot be NULL
+
+3. Initializing logging system:
+Initializing logging system in directory: /var/log/myapp
+Logging system initialized successfully
+   Logging system ready!
+
+4. Initializing logging with invalid path:
+   Error: Log directory path too long (max 100 characters)
+
+5. Cleaning up resources:
+Cleaning up allocated resources...
+Resource cleanup completed
+   Cleanup completed successfully!
+```
+
+### Common Use Cases for ErrorOrVoid
+
+1. **File Operations**: Writing, deleting, moving files
+2. **System Initialization**: Setting up components, configurations
+3. **Resource Management**: Cleanup, memory deallocation
+4. **Validation**: Checking data integrity, parameter validation
+5. **Network Operations**: Sending data (when response content isn't needed)
+6. **Database Operations**: INSERT, UPDATE, DELETE statements
+
+### ErrorOrVoid with Dynamic Error Messages
+
+For more detailed error reporting, you can use formatted error messages:
+
+```c
+#include <stdarg.h>
+
+typedef struct {
+    bool is_error;
+    char error_msg[200];  // Fixed buffer for formatted messages
+} ErrorOrVoidFormatted;
+
+ErrorOrVoidFormatted newErrorOrVoidFormattedSuccess() {
+    ErrorOrVoidFormatted result = {0};
+    result.is_error = false;
+    return result;
+}
+
+ErrorOrVoidFormatted newErrorOrVoidFormattedError(const char *format, ...) {
+    ErrorOrVoidFormatted result = {0};
+    result.is_error = true;
+    
+    va_list args;
+    va_start(args, format);
+    vsnprintf(result.error_msg, sizeof(result.error_msg), format, args);
+    va_end(args);
+    
+    return result;
+}
+
+// Example usage with formatted messages
+ErrorOrVoidFormatted validate_user_age(int age) {
+    if (age < 0) {
+        return newErrorOrVoidFormattedError(
+            "Age cannot be negative: received %d", age);
+    }
+    if (age > 150) {
+        return newErrorOrVoidFormattedError(
+            "Age %d seems unrealistic (max: 150)", age);
+    }
+    return newErrorOrVoidFormattedSuccess();
+}
+```
+
+**Key Benefits of ErrorOrVoid:**
+- ✅ **Explicit**: Cannot ignore that function might fail
+- ✅ **Lightweight**: Smaller than full ErrorOrValue types
+- ✅ **Clear Intent**: Function signature shows it's a side-effect operation
+- ✅ **Consistent**: Follows same pattern as other Error-or-X types
 
 ## Advanced Example with Formatted Messages
 
@@ -834,6 +1128,18 @@ void free_string_result(ErrorOrString *result) {
 }
 ```
 
+### 6. **Choose the Right Error Type for Your Function**
+```c
+// ✅ Function returns data - use ErrorOrType
+ErrorOrFloat calculate_average(float *numbers, size_t count);
+
+// ✅ Function performs action without returning data - use ErrorOrVoid
+ErrorOrVoid save_to_file(const char *filename, const char *data);
+
+// ✅ Function returns optional data - consider ErrorOrType with NULL pattern
+ErrorOrString find_user_by_id(int user_id); // Returns empty/NULL string if not found
+```
+
 ## Common Mistakes to Avoid
 
 ### 1. **Forgetting to Initialize**
@@ -905,10 +1211,32 @@ void process_file() {
 // ❌ Inconsistent - some functions use different patterns
 int old_function() { return -1; } // Returns error code
 ErrorOrFloat new_function();      // Returns union type
+void other_function();            // No error reporting at all
 
 // ✅ Consistent - all functions use same pattern
 ErrorOrInt old_function_fixed();
 ErrorOrFloat new_function();
+ErrorOrVoid other_function_fixed(); // Now reports errors properly
+```
+
+### 5. **Ignoring ErrorOrVoid Results**
+```c
+// ❌ Dangerous - ignoring potential errors
+save_config("config.txt", data);           // What if it failed?
+initialize_system();                       // Did initialization work?
+
+// ✅ Proper error handling
+ErrorOrVoid save_result = save_config("config.txt", data);
+if (save_result.is_error) {
+    printf("Failed to save config: %s\n", save_result.error_msg);
+    return; // Handle appropriately
+}
+
+ErrorOrVoid init_result = initialize_system();
+if (init_result.is_error) {
+    printf("System initialization failed: %s\n", init_result.error_msg);
+    exit(1); // Critical error
+}
 ```
 
 ## Performance Considerations
@@ -966,7 +1294,14 @@ The OUI Union Strategy provides a robust, type-safe way to handle errors in C. W
 - **Clarity**: Makes error handling explicit and visible
 - **Maintainability**: Self-documenting code with clear error messages
 - **Composability**: Easy to chain operations and propagate errors
+- **Flexibility**: Supports both value-returning functions (`ErrorOrType`) and action-performing functions (`ErrorOrVoid`)
 
 This pattern is particularly valuable in systems programming where reliability is crucial and explicit error management is preferred over exceptions or global error states.
 
-**Remember the key principle:** A function returns either a successful value OR an error, never both. Always check the `is_error` flag before accessing the `value` field!
+**Key Guidelines:**
+- Use `ErrorOrType` for functions that return data
+- Use `ErrorOrVoid` for functions that perform actions without returning data
+- Always check the `is_error` flag before accessing any value fields
+- A function returns either a successful result OR an error, never both
+
+Remember: Explicit error handling leads to more reliable and maintainable code!
