@@ -83,9 +83,9 @@ For questions, suggestions, or support regarding these standards:
 
 ## License
 
-This documentation and all associated content are released into the **public domain** under the Unlicense. This means you are free to use, modify, distribute, and build upon this work for any purpose, commercial or non-commercial, without any restrictions or requirements for attribution.
+This project is licensed under the **MIT License**. You are free to use, modify, distribute, and build upon this work for any purpose, commercial or non-commercial, provided that the original copyright notice and license terms are included.
 
-For detailed information, please refer to the [LICENSE](LICENSE) file or visit [unlicense.org](https://unlicense.org).
+For detailed information, please refer to the [LICENSE](LICENSE) file.
 
 ---
 
