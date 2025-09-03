@@ -83,7 +83,9 @@ For questions, suggestions, or support regarding these standards:
 
 ## License
 
-This documentation is provided under the same license terms as other OUI projects. Please refer to the LICENSE file for detailed information.
+This documentation and all associated content are released into the **public domain** under the Unlicense. This means you are free to use, modify, distribute, and build upon this work for any purpose, commercial or non-commercial, without any restrictions or requirements for attribution.
+
+For detailed information, please refer to the [LICENSE](LICENSE) file or visit [unlicense.org](https://unlicense.org).
 
 ---
 
